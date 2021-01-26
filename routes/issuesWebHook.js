@@ -5,6 +5,8 @@ var router = express.Router();
 const Issues = require('../models/issues');
 const Users = require('../models/users');
 
+const issueStatus = require('../models/issue-status');
+
 router.post('/', function (req, res, next) {
     const agent = new WebhookClient({
         request: req,
@@ -14,43 +16,109 @@ router.post('/', function (req, res, next) {
     const intentMap = new Map();
     intentMap.set('user.identify', userIdentificationHandler);
     intentMap.set('user.report.issue', reportIssueHandler);
+    intentMap.set('user.issue.details', getIssueDetailsHandler);
+
+    console.log("entered!");
 
     agent.handleRequest(intentMap);
 });
 
 
-/* User Identification Handler */
-async function reportIssueHandler(agent = new WebhookClient()) {
+/* Report Issue Handler */
+function reportIssueHandler(agent) {
+    const user_details = agent.getContext('user-details');
+    const desc = agent.query;
+    const issue = {
+        issueId: create_UUID(),
+        phoneNumber: user_details.parameters['phone-number'],
+        description: desc,
+        status: issueStatus.Created
+    };
 
-    console.log(agent);
+    return Issues.create(issue)
+        .then(resp => {
+            agent.clearOutgoingContexts();
+            agent.add('Issue Created Successfully!');
+            agent.add(`To check the status of the issue...`);
+            agent.add('please ask to check the status of an issue');
+            agent.end(`and provide this issue id: ${resp.issueId}`);
+        })
+        .catch(err => {
+            console.log(err);
+            agent.add('error occurred!');
+            agent.end('please restart the chatbot...');
+        })
+
 }
 
-async function userIdentificationHandler(agent = new WebhookClient()) {
-    const phone = agent.parameters['phone-number'];
-    if (!!phone) {
-        const user = await Users.findOne({ phoneNumber: phone });
-        if (!!user) {
-            agent.clearOutgoingContexts();
-            agent.setContext({
-                name: 'user-details',
-                lifespan: 5,
-                parameters: {
-                    username: user.username,
-                    phoneNumber: user.phoneNumber
+/* Issue Details Request Handler */
+function getIssueDetailsHandler(agent) {
+    const issueId = agent.parameters['IssueId'];
+
+    if (!!issueId) {
+        return Issues.findOne({ issueId: issueId })
+            .then(issue => {
+                if (!!issue) {
+                    agent.add(`Issue Details:`);
+                    agent.add(`issueId: ${issue.issueId}`);
+                    agent.add(`description: ${issue.description}`);
+                    agent.add(`status: ${issue.status}`);
+                    agent.end(`created on: ${issue.createdAt}`);
                 }
+                else {
+                    return agent.end(`Issue with id: ${issueId} Not Found!`);
+                }
+            })
+            .catch(err => {
+                agent.add('error occurred!');
+                return agent.end('please restart the chatbot...');
             });
-            agent.add(`Hi, ${user.username}`);
-            agent.add(`Please enter your issue description..`);
-        }
-        else {
-            agent.add('Not a registered mobile number!');
-        }
+    }
+}
+
+/* User Identification Handler */
+function userIdentificationHandler(agent) {
+    const phone = agent.parameters['phone-number'];
+    console.log("entered!");
+    if (!!phone) {
+        return Users.findOne({ phoneNumber: phone })
+            .then(user => {
+                if (!!user) {
+                    agent.clearOutgoingContexts();
+                    agent.setContext({
+                        name: 'user-details',
+                        lifespan: 5,
+                        parameters: {
+                            username: user.username,
+                            phoneNumber: user.phoneNumber
+                        }
+                    });
+                    agent.add(`Hi, ${user.username}`);
+                    agent.end(`Please enter your issue description..`);
+                }
+                else {
+                    agent.end(`${phoneNumber} is not a registered mobile number!`);
+                }
+            })
+            .catch(err => {
+                agent.add('error occurred!');
+                agent.end('please restart the chatbot...');
+            });
     }
     else {
-        agent.add('mobile number not provided!');
+        return agent.end('mobile number not provided!');
     }
 
-    console.log(agent);
+}
+
+function create_UUID() {
+    var dt = new Date().getTime();
+    var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        var r = (dt + Math.random() * 16) % 16 | 0;
+        dt = Math.floor(dt / 16);
+        return (c == 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+    });
+    return uuid;
 }
 
 module.exports = router;

@@ -13,7 +13,7 @@ const issueSchema = new Schema({
         minlength: 6,
         maxlength: 12,
     },
-    Desciption: {
+    description: {
         type: String,
         required: true,
     },
