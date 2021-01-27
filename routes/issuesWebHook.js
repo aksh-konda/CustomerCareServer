@@ -18,8 +18,6 @@ router.post('/', function (req, res, next) {
     intentMap.set('user.report.issue', reportIssueHandler);
     intentMap.set('user.issue.details', getIssueDetailsHandler);
 
-    console.log("entered!");
-
     agent.handleRequest(intentMap);
 });
 
@@ -28,6 +26,7 @@ router.post('/', function (req, res, next) {
 function reportIssueHandler(agent) {
     const user_details = agent.getContext('user-details');
     const desc = agent.query;
+    console.log(issue);
     const issue = {
         issueId: create_UUID(),
         phoneNumber: user_details.parameters['phone-number'],
@@ -38,15 +37,12 @@ function reportIssueHandler(agent) {
     return Issues.create(issue)
         .then(resp => {
             agent.clearOutgoingContexts();
-            agent.add('Issue Created Successfully!');
-            agent.add(`To check the status of the issue...`);
-            agent.add('please ask to check the status of an issue');
-            agent.end(`and provide this issue id: ${resp.issueId}`);
+            agent.add(`Issue Created Successfully!
+            To check the status of the issue use the issue id: ${resp.issueId}`);
         })
         .catch(err => {
             console.log(err);
-            agent.add('error occurred!');
-            agent.end('please restart the chatbot...');
+            agent.add('error occurred! please restart the chatbot...');
         })
 
 }
@@ -59,29 +55,27 @@ function getIssueDetailsHandler(agent) {
         return Issues.findOne({ issueId: issueId })
             .then(issue => {
                 if (!!issue) {
-                    agent.add(`Issue Details:`);
-                    agent.add(`issueId: ${issue.issueId}`);
-                    agent.add(`description: ${issue.description}`);
-                    agent.add(`status: ${issue.status}`);
-                    agent.end(`created on: ${issue.createdAt}`);
+                    agent.add(`Issue Details:
+                    issueId: ${issue.issueId}
+                    description: ${issue.description}
+                    status: ${issue.status}
+                    created on: ${issue.createdAt}`);
                 }
                 else {
-                    return agent.end(`Issue with id: ${issueId} Not Found!`);
+                    return agent.add(`Issue with id: ${issueId} Not Found!`);
                 }
             })
             .catch(err => {
-                agent.add('error occurred!');
-                return agent.end('please restart the chatbot...');
+                agent.add('error occurred! please restart the chatbot...');
             });
     }
 }
 
 /* User Identification Handler */
-function userIdentificationHandler(agent) {
+async function userIdentificationHandler(agent) {
     const phone = agent.parameters['phone-number'];
-    console.log("entered!");
     if (!!phone) {
-        return Users.findOne({ phoneNumber: phone })
+        await Users.findOne({ phoneNumber: phone })
             .then(user => {
                 if (!!user) {
                     agent.clearOutgoingContexts();
@@ -93,16 +87,15 @@ function userIdentificationHandler(agent) {
                             phoneNumber: user.phoneNumber
                         }
                     });
-                    agent.add(`Hi, ${user.username}`);
-                    agent.end(`Please enter your issue description..`);
+                    agent.add(`Hi, ${user.username}
+                    Please enter your issue description..`);
                 }
                 else {
                     agent.end(`${phoneNumber} is not a registered mobile number!`);
                 }
             })
             .catch(err => {
-                agent.add('error occurred!');
-                agent.end('please restart the chatbot...');
+                agent.add('error occurred! please restart the chatbot...');
             });
     }
     else {
