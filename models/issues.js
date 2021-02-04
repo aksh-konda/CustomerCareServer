@@ -19,7 +19,7 @@ const issueSchema = new Schema({
     },
     status: {
         type: String,
-        enum: ['Created', 'Processing', 'Closed'],
+        enum: ['Pending', 'Processing', 'Closed'],
         required: true,
     },
 }, { timestamps: true });

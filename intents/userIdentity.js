@@ -1,7 +1,7 @@
 const Users = require('../models/users');
 /* User Identification Handler */
 async function userIdentificationHandler(agent) {
-    const phone = agent.parameters['phone-number'];
+    const phone = agent.parameters['phoneNumber'];
     if (!!phone) {
         await Users.findOne({ phoneNumber: phone })
             .then(user => {
@@ -15,10 +15,10 @@ async function userIdentificationHandler(agent) {
                             phoneNumber: user.phoneNumber
                         }
                     });
-                    agent.add(`Hi, ${user.username}. Please enter your issue description..`);
+                    agent.add(`Hi, ${user.username}. How may I help you?`);
                 }
                 else {
-                    agent.end(`${phoneNumber} is not a registered mobile number!`);
+                    agent.add(`${phoneNumber} is not a registered mobile number!`);
                 }
             })
             .catch(err => {

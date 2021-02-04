@@ -1,5 +1,5 @@
 const issueStatusEnum = Object.freeze({
-    Created: 'Created',
+    Created: 'Pending',
     Processing: 'Processing',
     Closed: 'Closed',
 });

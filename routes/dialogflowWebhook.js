@@ -1,12 +1,9 @@
 var express = require('express');
-const { WebhookClient } = require('dialogflow-fulfillment');
 var router = express.Router();
+const { WebhookClient } = require('dialogflow-fulfillment');
 
-const Issues = require('../models/issues');
 const { userIdentificationHandler } = require('../intents/userIdentity');
-const { reportIssueHandler, getIssueDetailsHandler } = require('../intents/issueHandler');
-
-const issueStatus = require('../models/issue-status');
+const { reportIssueHandler, getIssueDetailsHandler, issueCustomPayload } = require('../intents/issueHandler');
 
 router.post('/', function (req, res, next) {
     const agent = new WebhookClient({
@@ -16,7 +13,8 @@ router.post('/', function (req, res, next) {
 
     const intentMap = new Map();
     intentMap.set('user.identify', userIdentificationHandler);
-    intentMap.set('user.issue.report', reportIssueHandler);
+    intentMap.set('user.issue.report', issueCustomPayload);
+    intentMap.set('user.issue.register', reportIssueHandler);
     intentMap.set('user.issue.query', getIssueDetailsHandler);
     agent.handleRequest(intentMap);
 });
